@@ -1,0 +1,62 @@
+// Prisma schema — points at your Supabase Postgres database.
+// After filling server/.env with DATABASE_URL, run:
+//   npm run prisma:migrate -- --name init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// One row per registered user. Matches the profile form described in step 1:
+// name, lastname, email, whatsapp, linkedin/portfolio/github (optional), and
+// a raw pasted CV text field. geminiApiKey is the user's own key (step 6) so
+// every user pays for their own AI calls.
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique
+  name          String
+  lastname      String
+  whatsapp      String?
+  linkedin      String?
+  portfolio     String?
+  github        String?
+  cvText        String?  @db.Text
+  geminiApiKey  String?  // stored encrypted at rest, see server/src/lib/crypto.ts note
+  profileComplete Boolean @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  aiResume      AiResume?
+  missingFields MissingField[]
+}
+
+// One row per user: the Gemini-generated short resume created right after
+// registration (step 1, "background" call).
+model AiResume {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resume    String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Step 3: when the extension scans a page's form fields and compares them
+// against the aiResume data, anything missing gets stored here per-site so
+// the AI interview (step 4-5) knows what to ask about.
+model MissingField {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  siteUrl    String
+  fieldLabel String
+  resolved   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@index([userId, siteUrl])
+}
