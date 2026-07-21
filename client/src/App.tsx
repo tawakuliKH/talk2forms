@@ -2,8 +2,12 @@ import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "./lib/supabaseClient";
+import Landing from "./pages/Landing";
 import Login from "./pages/Login";
-import CompleteProfile from "./pages/CompleteProfile";
+import Signup from "./pages/Signup";
+import DashboardLayout from "./pages/DashboardLayout";
+import Overview from "./pages/Overview";
+import Profile from "./pages/Profile";
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -14,11 +18,7 @@ export default function App() {
       setSession(data.session);
       setLoading(false);
     });
-
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession);
-    });
-
+    const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
     return () => listener.subscription.unsubscribe();
   }, []);
 
@@ -26,12 +26,17 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/login" element={session ? <Navigate to="/profile" /> : <Login />} />
+      <Route path="/" element={<Landing session={session} />} />
+      <Route path="/login" element={session ? <Navigate to="/dashboard" /> : <Login />} />
+      <Route path="/signup" element={session ? <Navigate to="/dashboard" /> : <Signup />} />
       <Route
-        path="/profile"
-        element={session ? <CompleteProfile session={session} /> : <Navigate to="/login" />}
-      />
-      <Route path="*" element={<Navigate to={session ? "/profile" : "/login"} />} />
+        path="/dashboard"
+        element={session ? <DashboardLayout session={session} /> : <Navigate to="/login" />}
+      >
+        <Route index element={<Overview session={session!} />} />
+        <Route path="profile" element={<Profile session={session!} />} />
+      </Route>
+      <Route path="*" element={<Navigate to={session ? "/dashboard" : "/"} />} />
     </Routes>
   );
 }

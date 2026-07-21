@@ -1,19 +1,23 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { signInWithGoogle, signInWithEmail } from "../lib/supabaseClient";
+import { Link, useNavigate } from "react-router-dom";
+import { signInWithGoogle, signUpWithEmail } from "../lib/supabaseClient";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export default function Login() {
+export default function Signup() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [touched, setTouched] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const emailValid = EMAIL_RE.test(email);
   const passwordValid = password.length >= 6;
-  const canSubmit = emailValid && passwordValid && !loading;
+  const confirmValid = confirmPassword === password && confirmPassword.length > 0;
+  const canSubmit = emailValid && passwordValid && confirmValid && !loading;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -21,9 +25,18 @@ export default function Login() {
     if (!canSubmit) return;
     setError(null);
     setLoading(true);
-    const { error } = await signInWithEmail(email, password);
+    const { error, data } = await signUpWithEmail(email, password);
     setLoading(false);
-    if (error) setError(error.message);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    // If email confirmation is off, Supabase returns a session immediately.
+    if (data.session) {
+      navigate("/dashboard");
+    } else {
+      setSuccess(true);
+    }
   }
 
   return (
@@ -32,13 +45,13 @@ export default function Login() {
         <div className="auth-logo">
           Talk2Forms<span>.</span>
         </div>
-        <h1>Welcome back</h1>
-        <p className="auth-subtitle">Sign in to continue to your profile.</p>
+        <h1>Create your account</h1>
+        <p className="auth-subtitle">Set up your profile once, apply everywhere.</p>
 
         <button type="button" className="auth-google" onClick={() => signInWithGoogle()}>
           Continue with Google
         </button>
-        <div className="auth-divider">or sign in with email</div>
+        <div className="auth-divider">or sign up with email</div>
 
         <form onSubmit={handleSubmit} noValidate>
           <div className="auth-field">
@@ -73,15 +86,36 @@ export default function Login() {
             )}
           </div>
 
+          <div className="auth-field">
+            <label className="auth-label" htmlFor="confirmPassword">
+              Confirm password <span className="auth-required-star">*</span>
+            </label>
+            <input
+              id="confirmPassword"
+              type="password"
+              className={`auth-input ${touched && !confirmValid ? "auth-input-invalid" : ""}`}
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+            {touched && !confirmValid && (
+              <div className="auth-field-error">Passwords must match.</div>
+            )}
+          </div>
+
           <button className="auth-submit" type="submit" disabled={!canSubmit}>
-            {loading ? "Signing in…" : "Sign in"}
+            {loading ? "Creating account…" : "Create account"}
           </button>
         </form>
 
         {error && <div className="auth-banner auth-banner-error">{error}</div>}
+        {success && (
+          <div className="auth-banner auth-banner-success">
+            Check your email to confirm your account, then sign in.
+          </div>
+        )}
 
         <p className="auth-switch">
-          Don't have an account? <Link to="/signup">Sign up</Link>
+          Already have an account? <Link to="/login">Sign in</Link>
         </p>
       </div>
     </div>

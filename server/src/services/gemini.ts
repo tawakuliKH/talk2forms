@@ -29,7 +29,7 @@ export async function generateResumeSummary(
   }
 
   const genAI = new GoogleGenerativeAI(key);
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash"});
 
   const prompt = `You are summarizing a job candidate's profile into a short resume.
 Keep it under 200 words, professional tone, third person, plain text (no markdown).

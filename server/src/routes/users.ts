@@ -103,3 +103,13 @@ usersRouter.get("/:id", async (req, res) => {
   if (!user) return res.status(404).json({ error: "Not found" });
   res.json({ user });
 });
+
+/** GET /api/users/by-email/:email — used by the Dashboard to load/edit an existing profile. */
+usersRouter.get("/by-email/:email", async (req, res) => {
+  const user = await prisma.user.findUnique({
+    where: { email: req.params.email },
+    include: { aiResume: true },
+  });
+  if (!user) return res.status(404).json({ error: "Not found" });
+  res.json({ user });
+});
