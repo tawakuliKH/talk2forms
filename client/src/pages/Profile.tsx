@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import type { Session } from "@supabase/supabase-js";
 
 interface Props {
@@ -74,12 +75,13 @@ export default function Profile({ session }: Props) {
 
   const nameValid = form.name.trim().length > 0;
   const lastnameValid = form.lastname.trim().length > 0;
-  const canSubmit = nameValid && lastnameValid && saveStatus !== "saving";
+  const geminiKeyValid = form.geminiApiKey.trim().length > 0;
+  const canSubmit = nameValid && lastnameValid && geminiKeyValid && saveStatus !== "saving";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setTouched(true);
-    if (!nameValid || !lastnameValid) return;
+    if (!nameValid || !lastnameValid || !geminiKeyValid) return;
 
     setSaveStatus("saving");
     setErrorMsg(null);
@@ -165,8 +167,29 @@ export default function Profile({ session }: Props) {
 
           <p className="dash-section-label">AI settings</p>
           <div className="auth-field">
-            <label className="auth-label" htmlFor="geminiApiKey">Gemini API key</label>
-            <input id="geminiApiKey" type="text" placeholder="AIza…" className="auth-input" value={form.geminiApiKey} onChange={(e) => update("geminiApiKey", e.target.value)} />
+            <label className="auth-label" htmlFor="geminiApiKey">
+              Gemini API key <span className="auth-required-star">*</span>
+            </label>
+            <input
+              id="geminiApiKey"
+              type="text"
+              placeholder="AQ… or AIza…"
+              className={`auth-input ${touched && !geminiKeyValid ? "auth-input-invalid" : ""}`}
+              value={form.geminiApiKey}
+              onChange={(e) => update("geminiApiKey", e.target.value)}
+            />
+            {touched && !geminiKeyValid && <div className="auth-field-error">A Gemini API key is required.</div>}
+            <div className="auth-field-error" style={{ color: "#6b7a70" }}>
+              Don't have one?{" "}
+              <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">
+                Get a free key
+              </a>{" "}
+              or{" "}
+              <Link to="/gemini-key-guide" target="_blank">
+                see the step-by-step guide
+              </Link>
+              .
+            </div>
           </div>
 
           <div className="dash-save-bar">

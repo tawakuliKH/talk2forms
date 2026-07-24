@@ -14,6 +14,7 @@ const TITLES: Record<string, string> = {
 
 export default function DashboardLayout({ session }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [topMenuOpen, setTopMenuOpen] = useState(false);
   const location = useLocation();
   const email = session.user.email || "";
   const initials = email.slice(0, 2).toUpperCase();
@@ -39,10 +40,17 @@ export default function DashboardLayout({ session }: Props) {
           {menuOpen && (
             <div className="dl-menu" onMouseLeave={() => setMenuOpen(false)}>
               <Link to="/dashboard/profile" className="dl-menu-item" onClick={() => setMenuOpen(false)}>
-                Edit profile
+                👤 My Profile
               </Link>
+              <button className="dl-menu-item dl-menu-item-disabled" disabled title="Coming soon">
+                📋 My Resumes
+              </button>
+              <button className="dl-menu-item dl-menu-item-disabled" disabled title="Coming soon">
+                ⚙️ Settings
+              </button>
+              <div className="dl-menu-divider" />
               <button className="dl-menu-item dl-menu-item-danger" onClick={() => signOut()}>
-                Sign out
+                🚪 Sign out
               </button>
             </div>
           )}
@@ -64,9 +72,28 @@ export default function DashboardLayout({ session }: Props) {
             <span className="dl-breadcrumb-sep">/</span>
             <span>{pageTitle}</span>
           </div>
-          <Link to="/dashboard/profile" className="dl-topbar-avatar" title={email}>
-            {initials}
-          </Link>
+          <div className="dl-topbar-corner">
+            <button className="dl-topbar-avatar" title={email} onClick={() => setTopMenuOpen((v) => !v)}>
+              {initials}
+            </button>
+            {topMenuOpen && (
+              <div className="dl-menu dl-menu-top" onMouseLeave={() => setTopMenuOpen(false)}>
+                <Link to="/dashboard/profile" className="dl-menu-item" onClick={() => setTopMenuOpen(false)}>
+                  👤 My Profile
+                </Link>
+                <button className="dl-menu-item dl-menu-item-disabled" disabled title="Coming soon">
+                  📋 My Resumes
+                </button>
+                <button className="dl-menu-item dl-menu-item-disabled" disabled title="Coming soon">
+                  ⚙️ Settings
+                </button>
+                <div className="dl-menu-divider" />
+                <button className="dl-menu-item dl-menu-item-danger" onClick={() => signOut()}>
+                  🚪 Sign out
+                </button>
+              </div>
+            )}
+          </div>
         </header>
         <main className="dl-content">
           <Outlet />

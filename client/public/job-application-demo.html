@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nimbus Labs — Software Engineer Application</title>
+<style>
+  :root { --ink:#16201c; --paper:#f4f6f2; --line:#dfe3dc; --accent:#3b6e52; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--paper); font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color:var(--ink); }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 48px 24px 100px; }
+  .brand { font-weight: 800; font-size: 1.3rem; margin-bottom: 4px; }
+  .brand span { color: var(--accent); }
+  .tag { color:#667; font-size:0.85rem; margin-bottom:32px; }
+  h1 { font-size: 1.6rem; margin: 0 0 6px; }
+  .sub { color:#667; margin: 0 0 32px; font-size:0.95rem; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:14px; padding:28px; margin-bottom:20px; }
+  .card h2 { font-size:1rem; text-transform:uppercase; letter-spacing:0.04em; color:#667; margin:0 0 20px; }
+  label { display:block; font-size:0.86rem; font-weight:600; margin: 16px 0 6px; }
+  label:first-of-type { margin-top: 0; }
+  .req { color:#c0392b; }
+  input[type=text], input[type=email], input[type=tel], input[type=url], input[type=password], input[type=date], input[type=file], textarea, select {
+    width:100%; padding:10px 12px; border:1px solid var(--line); border-radius:8px; font-size:0.92rem; font-family:inherit; background:#fff;
+  }
+  textarea { min-height: 110px; resize: vertical; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .choices { display:flex; flex-wrap:wrap; gap:14px; margin-top:6px; }
+  .choices label { display:flex; align-items:center; gap:6px; font-weight:500; font-size:0.88rem; margin:0; }
+  .hint { color:#889; font-size:0.78rem; margin-top:4px; }
+  button[type=submit] { margin-top: 10px; width:100%; padding:14px; border:none; border-radius:10px; background:var(--ink); color:#fff; font-size:0.95rem; font-weight:700; cursor:pointer; }
+  @media (max-width:560px){ .row{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="brand">Nimbus<span>Labs</span></div>
+    <div class="tag">Careers — Software Engineer, Platform Team</div>
+    <h1>Apply for Software Engineer</h1>
+    <p class="sub">Full-time · Remote · This is a demo application form used to showcase the Talk2Forms extension.</p>
+
+    <form>
+      <div class="card">
+        <h2>Your Details</h2>
+
+        <div class="row">
+          <div>
+            <label>First name <span class="req">*</span></label>
+            <input type="text" name="firstName" placeholder="Jane" />
+          </div>
+          <div>
+            <label>Last name <span class="req">*</span></label>
+            <input type="text" name="lastName" placeholder="Doe" />
+          </div>
+        </div>
+
+        <label>Email address <span class="req">*</span></label>
+        <input type="email" name="email" placeholder="you@example.com" />
+
+        <label>Phone / WhatsApp number <span class="req">*</span></label>
+        <input type="tel" name="phone" placeholder="+1 234 567 8900" />
+
+        <label>LinkedIn profile</label>
+        <input type="url" name="linkedin" placeholder="https://linkedin.com/in/..." />
+
+        <label>Portfolio or personal website</label>
+        <input type="url" name="portfolio" placeholder="https://..." />
+
+        <label>GitHub profile</label>
+        <input type="url" name="github" placeholder="https://github.com/..." />
+
+        <label>Create a password for your applicant account <span class="req">*</span></label>
+        <input type="password" name="password" placeholder="Min. 8 characters" />
+      </div>
+
+      <div class="card">
+        <h2>About You</h2>
+
+        <label>Years of professional experience <span class="req">*</span></label>
+        <select name="experience">
+          <option value="">Select…</option>
+          <option>Less than 1 year</option>
+          <option>1–2 years</option>
+          <option>3–5 years</option>
+          <option>5–10 years</option>
+          <option>10+ years</option>
+        </select>
+
+        <label>Employment type you're looking for <span class="req">*</span></label>
+        <div class="choices">
+          <label><input type="radio" name="employmentType" value="Full-time" /> Full-time</label>
+          <label><input type="radio" name="employmentType" value="Part-time" /> Part-time</label>
+          <label><input type="radio" name="employmentType" value="Contract" /> Contract</label>
+          <label><input type="radio" name="employmentType" value="Internship" /> Internship</label>
+        </div>
+
+        <label>Which of these apply to you? (select all that apply)</label>
+        <div class="choices">
+          <label><input type="checkbox" name="skills" value="React" /> React</label>
+          <label><input type="checkbox" name="skills" value="Node.js" /> Node.js</label>
+          <label><input type="checkbox" name="skills" value="Python" /> Python</label>
+          <label><input type="checkbox" name="skills" value="Machine Learning" /> Machine Learning</label>
+          <label><input type="checkbox" name="skills" value="Databases" /> Databases</label>
+        </div>
+
+        <label>Earliest start date <span class="req">*</span></label>
+        <input type="date" name="startDate" />
+
+        <label>Why do you want to work at Nimbus Labs? <span class="req">*</span></label>
+        <textarea name="coverLetter" placeholder="Tell us what excites you about this role..."></textarea>
+
+        <label>Tell us about a project you're proud of <span class="req">*</span></label>
+        <textarea name="proudProject" placeholder="Describe the project, your role, and the impact..."></textarea>
+
+        <label>Resume / CV upload</label>
+        <input type="file" name="resumeFile" accept=".pdf,.doc,.docx" />
+        <p class="hint">PDF or Word document, max 5MB.</p>
+      </div>
+
+      <div class="card">
+        <h2>Emergency Contact <span style="font-weight:400; text-transform:none; letter-spacing:0;">(not you)</span></h2>
+
+        <div class="row">
+          <div>
+            <label>Contact full name</label>
+            <input type="text" name="emergencyContactName" placeholder="Person to notify in an emergency" />
+          </div>
+          <div>
+            <label>Contact phone</label>
+            <input type="tel" name="emergencyContactPhone" placeholder="+1 234 567 8900" />
+          </div>
+        </div>
+
+        <label>Additional notes for the recruiter</label>
+        <textarea name="notes" placeholder="Anything else you'd like us to know?"></textarea>
+      </div>
+
+      <button type="submit">Submit Application</button>
+    </form>
+  </div>
+</body>
+</html>

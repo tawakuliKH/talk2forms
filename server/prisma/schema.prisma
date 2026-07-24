@@ -7,31 +7,35 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
-// One row per registered user. Matches the profile form described in step 1:
-// name, lastname, email, whatsapp, linkedin/portfolio/github (optional), and
-// a raw pasted CV text field. geminiApiKey is the user's own key (step 6) so
-// every user pays for their own AI calls.
 model User {
-  id            String   @id @default(uuid())
-  email         String   @unique
-  name          String
-  lastname      String
-  whatsapp      String?
-  linkedin      String?
-  portfolio     String?
-  github        String?
-  cvText        String?  @db.Text
-  geminiApiKey  String?  // stored encrypted at rest, see server/src/lib/crypto.ts note
-  profileComplete Boolean @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String   @id @default(uuid())
+  email           String   @unique
+  name            String
+  lastname        String
+  whatsapp        String?
+  linkedin        String?
+  portfolio       String?
+  github          String?
+  cvText          String?  @db.Text
+  geminiApiKey    String?
+  profileComplete Boolean  @default(false)
+  trialUsed       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  aiResume      AiResume?
-  missingFields MissingField[]
+  aiResume        AiResume?
+  missingFields   MissingField[]
+}
+
+model AnonymousUsage {
+  id       String   @id @default(uuid())
+  deviceId String   @unique
+  usedAt   DateTime @default(now())
 }
 
 // One row per user: the Gemini-generated short resume created right after

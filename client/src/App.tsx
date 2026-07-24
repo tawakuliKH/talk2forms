@@ -8,6 +8,8 @@ import Signup from "./pages/Signup";
 import DashboardLayout from "./pages/DashboardLayout";
 import Overview from "./pages/Overview";
 import Profile from "./pages/Profile";
+import GeminiKeyGuide from "./pages/GeminiKeyGuide";
+import { broadcastSessionToExtension } from "./lib/extensionBridge";
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -16,9 +18,13 @@ export default function App() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
+      broadcastSessionToExtension(data.session);
       setLoading(false);
     });
-    const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
+    const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => {
+      setSession(s);
+      broadcastSessionToExtension(s);
+    });
     return () => listener.subscription.unsubscribe();
   }, []);
 
@@ -29,6 +35,7 @@ export default function App() {
       <Route path="/" element={<Landing session={session} />} />
       <Route path="/login" element={session ? <Navigate to="/dashboard" /> : <Login />} />
       <Route path="/signup" element={session ? <Navigate to="/dashboard" /> : <Signup />} />
+      <Route path="/gemini-key-guide" element={<GeminiKeyGuide />} />
       <Route
         path="/dashboard"
         element={session ? <DashboardLayout session={session} /> : <Navigate to="/login" />}

@@ -14,7 +14,7 @@ const profileSchema = z.object({
   portfolio: z.string().url().optional().or(z.literal("")).nullable(),
   github: z.string().url().optional().or(z.literal("")).nullable(),
   cvText: z.string().optional().nullable(),
-  geminiApiKey: z.string().optional().nullable(),
+  geminiApiKey: z.string().min(1, "Gemini API key is required"),
 });
 
 /**
@@ -106,10 +106,15 @@ usersRouter.get("/:id", async (req, res) => {
 
 /** GET /api/users/by-email/:email — used by the Dashboard to load/edit an existing profile. */
 usersRouter.get("/by-email/:email", async (req, res) => {
-  const user = await prisma.user.findUnique({
-    where: { email: req.params.email },
-    include: { aiResume: true },
-  });
-  if (!user) return res.status(404).json({ error: "Not found" });
-  res.json({ user });
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: req.params.email },
+      include: { aiResume: true },
+    });
+    if (!user) return res.status(404).json({ error: "Not found" });
+    res.json({ user });
+  } catch (err) {
+    console.error("[users] by-email failed:", err);
+    res.status(503).json({ error: "Server temporarily unavailable. Please try again." });
+  }
 });
