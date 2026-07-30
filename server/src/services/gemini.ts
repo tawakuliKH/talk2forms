@@ -57,6 +57,7 @@ export interface AnalyzedField {
   label: string;
   status: "ready" | "missing" | "skip";
   value: string | null;
+  profileField: "name" | "lastname" | "whatsapp" | "linkedin" | "portfolio" | "github" | "cvText" | null;
 }
 
 export async function analyzeFormWithGemini({
@@ -133,13 +134,20 @@ DECISION RULES:
    "missing" over guessing, and prefer "skip" over misassigning someone else's
    field.
 
+Additionally, for fields that are genuinely personal profile information (not
+one-off answers specific to this form, like a cover letter), set "profileField"
+to which saved profile field it corresponds to: "name", "lastname", "whatsapp",
+"linkedin", "portfolio", "github", or "cvText" (use "cvText" only for a field
+that IS essentially a CV/bio/about-me, not for form-specific essay answers like
+"why this company"). Otherwise set "profileField" to null.
+
 Return ONLY valid JSON, no markdown fencing, no commentary, in exactly this shape:
 {
   "topic": "short plain-language description of what this page/form is for",
   "intro": "one warm spoken sentence greeting the user by first name, naming the
             page's purpose, and saying roughly how many fields need their input",
   "results": [
-    { "id": "field-id", "label": "field label", "status": "ready"|"missing"|"skip", "value": "string or null" }
+    { "id": "field-id", "label": "field label", "status": "ready"|"missing"|"skip", "value": "string or null", "profileField": "name"|"lastname"|"whatsapp"|"linkedin"|"portfolio"|"github"|"cvText"|null }
   ]
 }`;
 
@@ -155,6 +163,7 @@ export async function refineFieldAnswer({
   options,
   pageContext,
   rawAnswer,
+  previousDraft,
   cvText,
 }: {
   apiKey: string;
@@ -163,6 +172,7 @@ export async function refineFieldAnswer({
   options?: string[];
   pageContext?: string;
   rawAnswer: string;
+  previousDraft?: string;
   cvText?: string | null;
 }): Promise<string> {
   const genAI = new GoogleGenerativeAI(apiKey);
@@ -171,24 +181,28 @@ export async function refineFieldAnswer({
   const isLongForm = fieldType === "textarea";
   const isChoice = fieldType && ["select", "radio", "checkbox"].includes(fieldType) && options?.length;
 
-  const prompt = `You are turning a user's spoken answer into the final text for one
-form field.
+  const prompt = `You are a voice-to-form assistant helping someone fill out a form field
+completely hands-free — this may be their only way to interact with a form, so accuracy
+and taking their words at face value matters a lot. Never refuse or ask for more detail
+just because an answer is short: a single word, a phone number, or a short phrase can be
+a complete, correct answer for many fields.
 
-Field label: "${fieldLabel}"
+Field label (exactly as it appears on the form): "${fieldLabel}"
 Field type: ${fieldType || "text"}
-${isChoice ? `Available options (you MUST pick from these exactly, verbatim): ${JSON.stringify(options)}` : ""}
+${isChoice ? `Available options (you MUST pick from these exactly, verbatim, matching what they said as closely as possible): ${JSON.stringify(options)}` : ""}
 ${pageContext ? `Page context: ${pageContext.slice(0, 500)}` : ""}
-${cvText ? `User's CV/background for extra context:\n${cvText.slice(0, 1000)}` : ""}
-
-They just spoke this answer out loud (may be casual, rambling, with filler
-words or false starts): "${rawAnswer}"
+${cvText ? `User's background, for extra context only — do not force it in if irrelevant:\n${cvText.slice(0, 1000)}` : ""}
+${previousDraft ? `They already have this draft answer for this field:\n"${previousDraft}"\n\nThey just spoke again to ADD TO, CHANGE, or CORRECT that draft (not necessarily replace it entirely):` : "They just spoke this answer out loud (may be casual, rambling, with filler words, false starts, or very brief):"}
+"${rawAnswer}"
 
 ${
   isChoice
     ? "Return ONLY the single best-matching option text, exactly as it appears in the options list above. No other text."
     : isLongForm
-    ? "Rewrite this into a well-structured, professional 2-4 sentence answer suitable for a textarea field. Keep their real facts and meaning intact — do not invent new information not implied by what they said or their CV. Return ONLY the final text."
-    : "Rewrite this into a clean, concise, professional value suitable to paste directly into that single-line field. Keep their actual facts intact. Return ONLY the final text, no quotes, no preamble."
+    ? previousDraft
+      ? "Revise the existing draft to incorporate what they just said — merge, correct, or extend it as their new speech implies, keeping everything from the draft that they didn't ask to change. Return ONLY the final, complete, well-structured 2-5 sentence field value. No preamble."
+      : "Turn this into a well-structured, professional 2-5 sentence answer suitable for this field. Keep their real facts and meaning intact — do not invent information they didn't say or imply. Return ONLY the final text, no preamble."
+    : "Turn this into a clean, minimal value suitable to paste directly into this single field (e.g. a phone number, name, or short phrase). Do not add words that weren't implied — for something like a phone number, return just the number, cleaned up (consistent formatting, no filler words like 'my number is'). Return ONLY the final value, no quotes, no preamble."
 }`;
 
   const result = await model.generateContent(prompt);

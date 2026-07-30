@@ -16,24 +16,25 @@ let qi = 0;
 let recognition = null;
 let recognizing = false;
 let transcriptBuffer = "";
+let interimBuffer = "";
 let pageTextCache = "";
+let learnedUpdates = {};
 
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
 
+// Non-blocking on purpose: callers never await this, so the UI (buttons)
+// stays fully interactive while speech plays in the background.
 function speak(text) {
-  return new Promise((resolve) => {
-    const u = new SpeechSynthesisUtterance(text);
-    u.onend = resolve;
-    u.onerror = resolve;
-    speechSynthesis.speak(u);
-  });
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  speechSynthesis.speak(u);
 }
 
 function escapeHtml(str) {
   return String(str ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
-// ---------- Field extraction (trimmed for speed) ----------
+// ---------- Field extraction ----------
 
 function humanize(str) {
   return str.replace(/[_-]+/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").trim().replace(/\b\w/g, (c) => c.toUpperCase());
@@ -60,10 +61,24 @@ function findLabel(el) {
   return "";
 }
 
-// Cap huge dropdowns (e.g. 250-item country lists) — sending them all to
-// Gemini is the single biggest cause of slow analysis. Fields with more than
-// MAX_OPTIONS are sent WITHOUT their option list, so Gemini treats them as
-// "missing" rather than costing thousands of extra tokens per scan.
+// Radio/checkbox groups: the individual option's own wrapping <label>
+// (e.g. "Full-time") is NOT the field's label. Walk up looking for the
+// group heading that sits above the whole set of choices instead.
+function findGroupLabel(name, sampleEl) {
+  let container = sampleEl.closest("div") || sampleEl.parentElement;
+  for (let d = 0; d < 4 && container; d++) {
+    const prev = container.previousElementSibling;
+    if (prev) {
+      const text = prev.textContent.trim();
+      if (text && text.length < 100 && !prev.querySelector("input")) {
+        return text;
+      }
+    }
+    container = container.parentElement;
+  }
+  return humanize(name);
+}
+
 const MAX_OPTIONS = 25;
 
 function extractFields() {
@@ -87,7 +102,16 @@ function extractFields() {
       });
       const id = `t2f-field-${counter++}`;
       group.forEach((g) => g.setAttribute("data-t2f-group", id));
-      out.push({ id, label: findLabel(el) || humanize(el.name), type: el.type, options: options.slice(0, MAX_OPTIONS), isGroup: true });
+      out.push({ id, label: findGroupLabel(el.name, el), type: el.type, options: options.slice(0, MAX_OPTIONS), isGroup: true });
+      return;
+    }
+
+    if (el.type === "file") {
+      const label = findLabel(el);
+      if (!label) return;
+      const id = `t2f-field-${counter++}`;
+      el.setAttribute("data-t2f-id", id);
+      out.push({ id, label, type: "file" });
       return;
     }
 
@@ -99,7 +123,7 @@ function extractFields() {
     let options;
     if (el.tagName === "SELECT") {
       const all = Array.from(el.options).map((o) => o.textContent.trim()).filter(Boolean);
-      options = all.length <= MAX_OPTIONS ? all : undefined; // skip huge lists entirely
+      options = all.length <= MAX_OPTIONS ? all : undefined;
     }
 
     out.push({
@@ -139,7 +163,7 @@ function fillField(id, value, isGroup) {
   el.style.outlineOffset = "2px";
 }
 
-// ---------- Overlay UI ----------
+// ---------- Overlay shell ----------
 
 const OVERLAY_CSS = `
 #t2f-overlay { position: fixed; top: 20px; right: 20px; width: 380px; height: 80vh; max-height: 640px;
@@ -160,6 +184,9 @@ const OVERLAY_CSS = `
   font-weight:600; font-size:0.86rem; text-decoration:none; cursor:pointer; font-family:inherit; }
 .t2f-btn:disabled { background:#c3c9c1; cursor:not-allowed; }
 .t2f-btn-secondary { background:#f3f5f0; border:1px solid #e4e7e0; color:#16201c; margin-top:10px; }
+.t2f-btn-interview { background:#cfff57; color:#16201c; border:1px solid #b8e63e; margin-top:10px; font-weight:700; }
+.t2f-btn-interview:hover:not(:disabled) { background:#c2f542; }
+.t2f-btn-interview:disabled { background:#e8ecdf; color:#9aa39d; border-color:#e4e7e0; }
 .t2f-topic-box { background:linear-gradient(135deg,#f3ffcf,#edefea); border-radius:14px; padding:12px 14px; margin:14px 0; }
 .t2f-topic-label { font-size:0.66rem; text-transform:uppercase; color:#6b7a70; font-weight:700; margin:0 0 3px; }
 .t2f-topic { font-size:0.84rem; color:#16201c; margin:0; font-weight:600; }
@@ -174,11 +201,13 @@ const OVERLAY_CSS = `
 .t2f-iv-progress { font-family:"JetBrains Mono",monospace; font-size:0.7rem; color:#9aa39d; }
 .t2f-iv-label { font-weight:700; font-size:1rem; margin:0 0 6px; }
 .t2f-iv-hint { font-size:0.82rem; color:#6b7a70; margin:0 0 12px; }
-.t2f-iv-value { background:#f3f5f0; padding:10px 12px; border-radius:10px; font-size:0.84rem; margin:0 0 12px; }
-.t2f-iv-editable { width:100%; min-height:80px; padding:10px 12px; border:1px solid #d6dad1; border-radius:10px; font-size:0.84rem; font-family:inherit; margin:0 0 12px; }
-.t2f-iv-actions { display:flex; gap:8px; }
+.t2f-iv-input { width:100%; padding:10px 12px; border:1px solid #d6dad1; border-radius:10px; font-size:0.85rem; font-family:inherit; margin:0 0 12px; }
+.t2f-iv-editable { width:100%; min-height:100px; padding:10px 12px; border:1px solid #d6dad1; border-radius:10px; font-size:0.84rem; font-family:inherit; margin:0 0 12px; }
+.t2f-iv-actions { display:flex; gap:8px; flex-wrap: wrap; }
+.t2f-iv-actions .t2f-btn { flex: 1 1 calc(50% - 4px); min-width: 130px; }
 .t2f-transcript { font-size:0.76rem; color:#6b7a70; margin-top:8px; min-height:14px; }
 .t2f-btn-link { display:block; width:100%; text-align:center; background:none; border:none; color:#9aa39d; font-size:0.76rem; cursor:pointer; padding:8px 0 0; }
+.t2f-file-note { font-size: 0.82rem; color: #6b7a70; background: #f3f5f0; border-radius: 10px; padding: 12px; margin-bottom: 14px; }
 `;
 
 function injectStyles() {
@@ -194,7 +223,9 @@ async function toggleOverlay() {
     overlayEl.remove();
     overlayEl = null;
     speechSynthesis.cancel();
-    if (recognition && recognizing) recognition.stop();
+    if (recognition && recognizing) {
+      try { recognition.stop(); } catch (e) {}
+    }
     return;
   }
   injectStyles();
@@ -235,7 +266,7 @@ async function renderRoot() {
         </div>
         <div class="t2f-field-list" id="fieldList"></div>
         <div class="t2f-bottom-fixed">
-          <button class="t2f-btn t2f-btn-secondary" id="interviewBtn" style="display:none;" disabled>Start interview</button>
+          <button class="t2f-btn t2f-btn-interview" id="interviewBtn" style="display:none;" disabled>🎤 Start interview</button>
           <a class="t2f-btn t2f-btn-secondary" href="${APP_URL}/dashboard" target="_blank">Open dashboard</a>
         </div>
       </div>
@@ -258,7 +289,10 @@ async function renderRoot() {
 }
 
 function statusPill(f) {
-  if (f.status === "skip") return `<span class="t2f-field-status t2f-status-skip">— Not tracked</span>`;
+  if (f.status === "skip") {
+    if (f.type === "file") return `<span class="t2f-field-status t2f-status-skip">📎 Upload manually</span>`;
+    return `<span class="t2f-field-status t2f-status-skip">— Not tracked</span>`;
+  }
   if (f.status === "ready") return `<span class="t2f-field-status t2f-status-ready">✓ ${escapeHtml(f.value)}</span>`;
   return `<span class="t2f-field-status t2f-status-missing">● Missing</span>`;
 }
@@ -270,6 +304,7 @@ function renderFieldList() {
 }
 
 async function handleScan() {
+  learnedUpdates = {};
   const fieldListEl = document.getElementById("fieldList");
   fieldListEl.innerHTML = `<p class="t2f-status">⏳ Analyzing the form with AI…</p>`;
   document.getElementById("interviewBtn").style.display = "none";
@@ -293,7 +328,17 @@ async function handleScan() {
     return;
   }
 
-  fields = body.results.map((r, i) => ({ ...r, type: extracted[i]?.type, options: extracted[i]?.options, isGroup: extracted[i]?.isGroup }));
+  const extractedById = Object.fromEntries(extracted.map((f) => [f.id, f]));
+  fields = body.results.map((r) => {
+    const orig = extractedById[r.id] || {};
+    return {
+      ...r,
+      type: orig.type,
+      options: orig.options,
+      isGroup: orig.isGroup,
+      status: orig.type === "file" ? "skip" : r.status,
+    };
+  });
   renderFieldList();
 
   const topicBox = document.getElementById("topicBox");
@@ -307,13 +352,19 @@ async function handleScan() {
   interviewBtn.disabled = queue.length === 0;
   interviewBtn.style.display = "block";
 
-  await speak(body.intro);
+  const closing = queue.length > 0
+    ? " Let's start the interview to fill out this form — press Start interview whenever you're ready."
+    : "";
+  speak(body.intro + closing);
 }
+
+// ---------- Interview flow ----------
 
 async function nextInQueue() {
   if (qi >= queue.length) {
     document.getElementById("interviewStep").innerHTML = `<p class="t2f-status t2f-status-done">✓ All fields reviewed</p>`;
-    await speak("All done. Your form is ready to review and submit.");
+    speak("All done. Your form is ready to review and submit.");
+    submitLearnedUpdates();
     return;
   }
 
@@ -321,7 +372,35 @@ async function nextInQueue() {
   const stepEl = document.getElementById("interviewStep");
   document.getElementById("ivProgress").textContent = `Field ${qi + 1} of ${queue.length}`;
 
-  if (field.status === "ready") {
+  // File uploads: never fillable by the extension.
+  if (field.type === "file") {
+    stepEl.innerHTML = `
+      <p class="t2f-iv-label">${escapeHtml(field.label)}</p>
+      <p class="t2f-file-note">Please upload your file directly on the page using this field's own upload button — Talk2Forms can't attach files for you.</p>
+      <div class="t2f-iv-actions">
+        <button class="t2f-btn" id="skipBtn">Next field →</button>
+      </div>`;
+    speak(`For ${field.label}, please upload the file directly on the page. I can't do that part for you.`);
+    document.getElementById("skipBtn").onclick = () => advanceQueue();
+    return;
+  }
+
+  // Long-form (textarea) fields: always the 4-button editable draft flow,
+  // whether there's already a value or not.
+  if (field.type === "textarea") {
+    renderTextareaCapture(field, field.status === "ready" ? field.value : null);
+    if (field.status === "ready") {
+      speak(`For ${field.label}, I have: ${field.value}. Do you want me to use this, or is there anything you'd like to add or change? Feel free to talk to me.`);
+    } else {
+      speak(`Tell me about your ${field.label}. Press start recording when ready, or skip it.`);
+    }
+    return;
+  }
+
+  // Choice fields (select/radio/checkbox): must map to a real option, so
+  // shown as a read-only confirm — but editable via the record flow below.
+  const isChoice = field.options && field.options.length > 0;
+  if (field.status === "ready" && isChoice) {
     stepEl.innerHTML = `
       <p class="t2f-iv-label">${escapeHtml(field.label)}</p>
       <p class="t2f-iv-value">${escapeHtml(field.value)}</p>
@@ -329,27 +408,91 @@ async function nextInQueue() {
         <button class="t2f-btn" id="acceptBtn">Use this ✓</button>
         <button class="t2f-btn t2f-btn-secondary" id="skipBtn">Skip</button>
       </div>`;
-    await speak(`For ${field.label}, I have: ${field.value}. Should I use this?`);
-    document.getElementById("acceptBtn").onclick = () => confirmField(field, field.value);
-    document.getElementById("skipBtn").onclick = () => advanceQueue();
+    document.getElementById("acceptBtn").onclick = () => { speechSynthesis.cancel(); confirmField(field, field.value); };
+    document.getElementById("skipBtn").onclick = () => { speechSynthesis.cancel(); advanceQueue(); };
+    speak(`For ${field.label}, I have: ${field.value}. Should I use this?`);
     return;
   }
 
-  stepEl.innerHTML = `
-    <p class="t2f-iv-label">${escapeHtml(field.label)}</p>
-    <p class="t2f-iv-hint">This one's missing — tell me about it, or skip it.</p>
-    <div class="t2f-iv-actions">
-      <button class="t2f-btn" id="recBtn">🎙️ Start recording</button>
-      <button class="t2f-btn t2f-btn-secondary" id="stopRecBtn" disabled>Stop</button>
-    </div>
-    <p class="t2f-transcript" id="transcript"></p>
-    <button class="t2f-btn-link" id="skipMissingBtn">Skip this field</button>`;
-  await speak(`Tell me about your ${field.label}. Press start recording when ready, or skip it.`);
-  document.getElementById("skipMissingBtn").onclick = () => advanceQueue();
-  wireRecordButtons(field);
+  // Plain single-line fields (text/email/tel/url/date/select-without-match):
+  // ALWAYS editable, whether pre-filled from the profile or freshly missing.
+  renderSimpleCapture(field, field.status === "ready" ? field.value : "");
+  if (field.status === "ready") {
+    speak(`For ${field.label}, I have: ${field.value}. You can edit it if you'd like, or use this as is.`);
+  } else {
+    speak(`Tell me about your ${field.label}. Press start recording when ready, or skip it.`);
+  }
 }
 
-function wireRecordButtons(field) {
+function renderSimpleCapture(field, initialValue) {
+  const stepEl = document.getElementById("interviewStep");
+  const hasValue = Boolean(initialValue);
+  stepEl.innerHTML = `
+    <p class="t2f-iv-label">${escapeHtml(field.label)}</p>
+    <input type="text" class="t2f-iv-input" id="editableInput" value="${escapeHtml(initialValue)}" placeholder="Type or record your answer…" />
+    <div class="t2f-iv-actions">
+      <button class="t2f-btn" id="useThisBtn" ${hasValue ? "" : "disabled"}>Use this ✓</button>
+      <button class="t2f-btn t2f-btn-secondary" id="recBtn">🎙️ Start recording</button>
+      <button class="t2f-btn t2f-btn-secondary" id="stopRecBtn" disabled>Done recording</button>
+      <button class="t2f-btn t2f-btn-secondary" id="skipBtn">Skip</button>
+    </div>
+    <p class="t2f-transcript" id="transcript"></p>`;
+
+  const input = document.getElementById("editableInput");
+  const useThisBtn = document.getElementById("useThisBtn");
+  input.addEventListener("input", () => { useThisBtn.disabled = !input.value.trim(); });
+
+  useThisBtn.onclick = () => {
+    if (!input.value.trim()) return;
+    speechSynthesis.cancel();
+    confirmField(field, input.value.trim());
+  };
+  document.getElementById("skipBtn").onclick = () => { speechSynthesis.cancel(); advanceQueue(); };
+
+  wireRecordButtons(field, (raw) => processSimpleAnswer(field, raw));
+}
+
+function renderTextareaCapture(field, draft) {
+  const stepEl = document.getElementById("interviewStep");
+  const hasDraft = Boolean(draft);
+
+  stepEl.innerHTML = `
+    <p class="t2f-iv-label">${escapeHtml(field.label)}</p>
+    ${
+      hasDraft
+        ? `<textarea class="t2f-iv-editable" id="editableAnswer">${escapeHtml(draft)}</textarea>`
+        : `<p class="t2f-iv-hint">This one's missing — tell me about it in your own words.</p>`
+    }
+    <div class="t2f-iv-actions">
+      <button class="t2f-btn" id="useThisBtn" ${hasDraft ? "" : "disabled"}>Use this ✓</button>
+      <button class="t2f-btn t2f-btn-secondary" id="recBtn">🎙️ Start recording</button>
+      <button class="t2f-btn t2f-btn-secondary" id="stopRecBtn" disabled>Done recording</button>
+      <button class="t2f-btn t2f-btn-secondary" id="skipBtn">Skip</button>
+    </div>
+    <p class="t2f-transcript" id="transcript"></p>`;
+
+  const useThisBtn = document.getElementById("useThisBtn");
+  if (hasDraft) {
+    const textarea = document.getElementById("editableAnswer");
+    textarea.addEventListener("input", () => { useThisBtn.disabled = !textarea.value.trim(); });
+  }
+
+  useThisBtn.onclick = () => {
+    if (!hasDraft) return;
+    speechSynthesis.cancel();
+    const finalValue = document.getElementById("editableAnswer").value;
+    confirmField(field, finalValue);
+  };
+  document.getElementById("skipBtn").onclick = () => { speechSynthesis.cancel(); advanceQueue(); };
+
+  const currentDraft = () => (hasDraft ? document.getElementById("editableAnswer").value : null);
+  wireRecordButtons(field, (raw) => processTextareaAnswer(field, raw, currentDraft()));
+}
+
+// Shared speech capture. Interim (non-final) results are kept as a live
+// fallback, so a short utterance (e.g. a phone number) that the browser
+// ends before ever producing a "final" result is still used instead of lost.
+function wireRecordButtons(field, onDone) {
   const recBtn = document.getElementById("recBtn");
   const stopBtn = document.getElementById("stopRecBtn");
   const transcriptEl = document.getElementById("transcript");
@@ -362,15 +505,25 @@ function wireRecordButtons(field) {
 
   recBtn.onclick = () => {
     transcriptBuffer = "";
+    interimBuffer = "";
     recognition = new SpeechRecognitionAPI();
     recognition.lang = "en-US";
     recognition.continuous = true;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
+
     recognition.onresult = (e) => {
-      for (let i = e.resultIndex; i < e.results.length; i++) transcriptBuffer += e.results[i][0].transcript + " ";
-      transcriptEl.textContent = `"${transcriptBuffer.trim()}"`;
+      let finalChunk = "";
+      let interimChunk = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finalChunk += e.results[i][0].transcript + " ";
+        else interimChunk += e.results[i][0].transcript;
+      }
+      if (finalChunk) transcriptBuffer += finalChunk;
+      interimBuffer = interimChunk;
+      transcriptEl.textContent = `"${(transcriptBuffer + interimBuffer).trim()}"`;
     };
     recognition.onerror = () => {};
+    recognition.onend = () => { recognizing = false; };
     recognition.start();
     recognizing = true;
     recBtn.disabled = true;
@@ -379,74 +532,87 @@ function wireRecordButtons(field) {
   };
 
   stopBtn.onclick = async () => {
-    if (recognition && recognizing) recognition.stop();
+    try {
+      if (recognition && recognizing) recognition.stop();
+    } catch (e) {}
     recognizing = false;
     recBtn.disabled = false;
     stopBtn.disabled = true;
     recBtn.textContent = "🎙️ Start recording";
-    if (!transcriptBuffer.trim()) {
+
+    const finalText = (transcriptBuffer || interimBuffer).trim();
+    if (!finalText) {
       transcriptEl.textContent = "Didn't catch anything — try again.";
       return;
     }
-    await processAnswer(field, transcriptBuffer.trim());
+    await onDone(finalText);
   };
 }
 
-async function processAnswer(field, rawAnswer) {
+async function processSimpleAnswer(field, rawAnswer) {
   const stepEl = document.getElementById("interviewStep");
   stepEl.insertAdjacentHTML("beforeend", `<p class="t2f-status" id="thinking">Thinking…</p>`);
 
-  const { t2f_session } = await chrome.storage.local.get("t2f_session");
-  const { ok, body } = await chrome.runtime.sendMessage({
-    type: "T2F_INTERVIEW_ANSWER",
-    payload: {
-      email: t2f_session.email,
-      fieldLabel: field.label,
-      fieldType: field.type,
-      options: field.options,
-      pageContext: pageTextCache,
-      rawAnswer,
-    },
-  });
-  document.getElementById("thinking")?.remove();
+  try {
+    const { t2f_session } = await chrome.storage.local.get("t2f_session");
+    const { ok, body } = await chrome.runtime.sendMessage({
+      type: "T2F_INTERVIEW_ANSWER",
+      payload: { email: t2f_session.email, fieldLabel: field.label, fieldType: field.type, options: field.options, pageContext: pageTextCache, rawAnswer },
+    });
+    document.getElementById("thinking")?.remove();
 
-  if (!ok) {
-    stepEl.innerHTML = `<p class="t2f-status t2f-status-error">${escapeHtml(body.error || "Something went wrong.")}</p>`;
-    return;
+    if (!ok) {
+      stepEl.innerHTML += `<p class="t2f-status t2f-status-error">${escapeHtml(body?.error || "Something went wrong.")}</p>`;
+      return;
+    }
+
+    renderSimpleCapture(field, body.answer);
+    speak(`Here's what I'll put: ${body.answer}. You can edit it, or use this as is.`);
+  } catch (err) {
+    document.getElementById("thinking")?.remove();
+    stepEl.innerHTML += `<p class="t2f-status t2f-status-error">Error: ${escapeHtml(err.message || String(err))}</p>`;
   }
-
-  const isChoice = field.options && field.options.length > 0;
-  stepEl.innerHTML = `
-    <p class="t2f-iv-label">${escapeHtml(field.label)}</p>
-    ${isChoice ? `<p class="t2f-iv-value">${escapeHtml(body.answer)}</p>` : `<textarea class="t2f-iv-editable" id="editableAnswer">${escapeHtml(body.answer)}</textarea>`}
-    <div class="t2f-iv-actions">
-      <button class="t2f-btn" id="acceptBtn">Accept ✓</button>
-      <button class="t2f-btn t2f-btn-secondary" id="redoBtn">Try again</button>
-    </div>`;
-  await speak(`Here's what I'll put: ${body.answer}. Do you accept this, or want to edit it?`);
-  document.getElementById("acceptBtn").onclick = () => {
-    const finalValue = isChoice ? body.answer : document.getElementById("editableAnswer").value;
-    confirmField(field, finalValue);
-  };
-  document.getElementById("redoBtn").onclick = () => retryField(field);
 }
 
-function retryField(field) {
+async function processTextareaAnswer(field, rawAnswer, previousDraft) {
   const stepEl = document.getElementById("interviewStep");
-  stepEl.innerHTML = `
-    <p class="t2f-iv-label">${escapeHtml(field.label)}</p>
-    <div class="t2f-iv-actions">
-      <button class="t2f-btn" id="recBtn">🎙️ Start recording</button>
-      <button class="t2f-btn t2f-btn-secondary" id="stopRecBtn" disabled>Stop</button>
-    </div>
-    <p class="t2f-transcript" id="transcript"></p>`;
-  wireRecordButtons(field);
+  stepEl.insertAdjacentHTML("beforeend", `<p class="t2f-status" id="thinking">Thinking…</p>`);
+
+  try {
+    const { t2f_session } = await chrome.storage.local.get("t2f_session");
+    const { ok, body } = await chrome.runtime.sendMessage({
+      type: "T2F_INTERVIEW_ANSWER",
+      payload: {
+        email: t2f_session.email,
+        fieldLabel: field.label,
+        fieldType: field.type,
+        pageContext: pageTextCache,
+        rawAnswer,
+        previousDraft: previousDraft || undefined,
+      },
+    });
+    document.getElementById("thinking")?.remove();
+
+    if (!ok) {
+      stepEl.innerHTML += `<p class="t2f-status t2f-status-error">${escapeHtml(body?.error || "Something went wrong.")}</p>`;
+      return;
+    }
+
+    renderTextareaCapture(field, body.answer);
+    speak(`Here's the draft: ${body.answer}. Do you want me to use this, or is there anything you'd like to add or change? Feel free to talk to me.`);
+  } catch (err) {
+    document.getElementById("thinking")?.remove();
+    stepEl.innerHTML += `<p class="t2f-status t2f-status-error">Error: ${escapeHtml(err.message || String(err))}</p>`;
+  }
 }
 
 function confirmField(field, value) {
   fillField(field.id, value, !!field.isGroup);
   field.status = "ready";
   field.value = value;
+  if (field.profileField) {
+    learnedUpdates[field.profileField] = value;
+  }
   renderFieldList();
   advanceQueue();
 }
@@ -454,6 +620,19 @@ function confirmField(field, value) {
 function advanceQueue() {
   qi++;
   nextInQueue();
+}
+
+async function submitLearnedUpdates() {
+  if (Object.keys(learnedUpdates).length === 0) return;
+  const { t2f_session } = await chrome.storage.local.get("t2f_session");
+  try {
+    await chrome.runtime.sendMessage({
+      type: "T2F_LEARN",
+      payload: { email: t2f_session.email, updates: learnedUpdates },
+    });
+  } catch (err) {
+    console.error("[Talk2Forms] failed to save learned info:", err);
+  }
 }
 
 chrome.runtime.onMessage.addListener((message) => {
