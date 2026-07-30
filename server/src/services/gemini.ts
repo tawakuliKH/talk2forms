@@ -1,5 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+// Retries only on transient server-side errors (503). Never retries on 429
+// (quota exceeded) — blindly retrying a quota error just burns more of the
+// budget we're trying to protect.
 async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
   let lastErr: unknown;
   for (let i = 0; i < attempts; i++) {
@@ -7,12 +10,30 @@ async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
       return await fn();
     } catch (err: any) {
       lastErr = err;
-      if (err?.status !== 503 || i === attempts - 1) throw err;
+      if (err?.status === 429 || err?.status !== 503 || i === attempts - 1) throw err;
       const delay = 1000 * Math.pow(2, i); // 1s, 2s, 4s
       await new Promise((r) => setTimeout(r, delay));
     }
   }
   throw lastErr;
+}
+
+// On a 429 (quota exceeded), Google tells us exactly how long to wait via
+// RetryInfo. Wait that out once, invisibly to the user, instead of failing
+// immediately — turns a burst of quick requests (scan + a few field answers)
+// into a slightly slower but successful sequence instead of an error.
+async function withQuotaWait<T>(fn: () => Promise<T>): Promise<T> {
+  try {
+    return await fn();
+  } catch (err: any) {
+    if (err?.status === 429) {
+      const retryInfo = err?.errorDetails?.find((d: any) => d["@type"]?.includes("RetryInfo"));
+      const waitSeconds = retryInfo?.retryDelay ? parseInt(retryInfo.retryDelay) : 10;
+      await new Promise((r) => setTimeout(r, (waitSeconds + 1) * 1000));
+      return await fn(); // one retry, after actually waiting out the quota window
+    }
+    throw err;
+  }
 }
 
 interface ProfileInput {
@@ -44,7 +65,7 @@ export async function generateResumeSummary(
   }
 
   const genAI = new GoogleGenerativeAI(key);
-  const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash"});
+  const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash-lite" });
 
   const prompt = `You are summarizing a job candidate's profile into a short resume.
 Keep it under 200 words, professional tone, third person, plain text (no markdown).
@@ -63,7 +84,7 @@ ${profile.cvText ?? "(none provided)"}
 
 Write the summarized resume now.`;
 
-  const result = await withRetry(() => withRetry(() => model.generateContent(prompt)));
+  const result = await withQuotaWait(() => withRetry(() => model.generateContent(prompt)));
   return result.response.text().trim();
 }
 
@@ -166,7 +187,7 @@ Return ONLY valid JSON, no markdown fencing, no commentary, in exactly this shap
   ]
 }`;
 
-  const result = await withRetry(() => model.generateContent(prompt));
+  const result = await withQuotaWait(() => withRetry(() => model.generateContent(prompt)));
   const text = result.response.text().trim().replace(/^```json\s*|\s*```$/g, "");
   return JSON.parse(text);
 }
@@ -220,7 +241,7 @@ ${
     : "Turn this into a clean, minimal value suitable to paste directly into this single field (e.g. a phone number, name, or short phrase). Do not add words that weren't implied — for something like a phone number, return just the number, cleaned up (consistent formatting, no filler words like 'my number is'). Return ONLY the final value, no quotes, no preamble."
 }`;
 
-  const result = await withRetry(() => model.generateContent(prompt));
+  const result = await withQuotaWait(() => withRetry(() => model.generateContent(prompt)));
   return result.response.text().trim().replace(/^["']|["']$/g, "");
 }
 
@@ -234,7 +255,7 @@ export async function classifyFieldsWithGemini({
   profileKeys: string[];
 }): Promise<Record<string, string | null>> {
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash-lite" });
 
   const prompt = `You are matching form field labels to a user's saved profile fields.
 Available profile fields: ${profileKeys.join(", ")}
@@ -245,7 +266,7 @@ Return ONLY a JSON object mapping each exact label to either one of the profile
 field names above, or null if none apply. No explanation, no markdown, just JSON.
 Example: {"Company website": "portfolio", "Random unrelated question": null}`;
 
-  const result = await withRetry(() => model.generateContent(prompt));
+  const result = await withQuotaWait(() => withRetry(() => model.generateContent(prompt)));
   const text = result.response.text().trim().replace(/^```json\s*|\s*```$/g, "");
   try {
     return JSON.parse(text);
