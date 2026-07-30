@@ -1,5 +1,20 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
+async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err: any) {
+      lastErr = err;
+      if (err?.status !== 503 || i === attempts - 1) throw err;
+      const delay = 1000 * Math.pow(2, i); // 1s, 2s, 4s
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw lastErr;
+}
+
 interface ProfileInput {
   name: string;
   lastname: string;
@@ -48,7 +63,7 @@ ${profile.cvText ?? "(none provided)"}
 
 Write the summarized resume now.`;
 
-  const result = await model.generateContent(prompt);
+  const result = await withRetry(() => withRetry(() => model.generateContent(prompt)));
   return result.response.text().trim();
 }
 
@@ -151,7 +166,7 @@ Return ONLY valid JSON, no markdown fencing, no commentary, in exactly this shap
   ]
 }`;
 
-  const result = await model.generateContent(prompt);
+  const result = await withRetry(() => model.generateContent(prompt));
   const text = result.response.text().trim().replace(/^```json\s*|\s*```$/g, "");
   return JSON.parse(text);
 }
@@ -205,7 +220,7 @@ ${
     : "Turn this into a clean, minimal value suitable to paste directly into this single field (e.g. a phone number, name, or short phrase). Do not add words that weren't implied — for something like a phone number, return just the number, cleaned up (consistent formatting, no filler words like 'my number is'). Return ONLY the final value, no quotes, no preamble."
 }`;
 
-  const result = await model.generateContent(prompt);
+  const result = await withRetry(() => model.generateContent(prompt));
   return result.response.text().trim().replace(/^["']|["']$/g, "");
 }
 
@@ -230,7 +245,7 @@ Return ONLY a JSON object mapping each exact label to either one of the profile
 field names above, or null if none apply. No explanation, no markdown, just JSON.
 Example: {"Company website": "portfolio", "Random unrelated question": null}`;
 
-  const result = await model.generateContent(prompt);
+  const result = await withRetry(() => model.generateContent(prompt));
   const text = result.response.text().trim().replace(/^```json\s*|\s*```$/g, "");
   try {
     return JSON.parse(text);
