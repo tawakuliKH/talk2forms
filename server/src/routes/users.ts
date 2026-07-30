@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { generateResumeSummary } from "../services/gemini.js";
+import { sendProfileUpdatedEmail } from "../services/email.js";
 
 export const usersRouter = Router();
 
@@ -60,6 +61,10 @@ usersRouter.post("/register", async (req, res) => {
 
     // Respond to the client immediately — don't block on the AI call.
     res.status(201).json({ user: { id: user.id, email: user.email } });
+
+    // Confirmation email — fire-and-forget, doesn't block or depend on
+    // resume generation succeeding.
+    void sendProfileUpdatedEmail(user.email, user.name);
 
     // Fire-and-forget background job (step 1).
     void (async () => {

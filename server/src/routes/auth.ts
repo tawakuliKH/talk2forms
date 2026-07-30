@@ -2,6 +2,7 @@ import { Router } from "express";
 import { OAuth2Client } from "google-auth-library";
 import { prisma } from "../lib/prisma";
 import { hashPassword, verifyPassword, signSessionToken, setSessionCookie, clearSessionCookie, getSessionFromRequest } from "../lib/auth";
+import { sendWelcomeEmail } from "../services/email";
 
 export const authRouter = Router();
 
@@ -27,6 +28,7 @@ authRouter.post("/signup", async (req, res) => {
 
     const token = signSessionToken(user.id, user.email);
     setSessionCookie(res, token);
+    void sendWelcomeEmail(user.email);
     res.json({ user: { id: user.id, email: user.email } });
   } catch (err) {
     console.error("[auth] signup failed:", err);
@@ -88,6 +90,8 @@ authRouter.get("/google/callback", async (req, res) => {
     if (!payload?.email) return res.redirect(`${CLIENT_URL}/login?error=google_failed`);
 
     let user = await prisma.user.findUnique({ where: { email: payload.email } });
+    let isNewUser = false;
+
     if (!user) {
       user = await prisma.user.create({
         data: {
@@ -97,12 +101,16 @@ authRouter.get("/google/callback", async (req, res) => {
           lastname: payload.family_name || "",
         },
       });
+      isNewUser = true;
     } else if (!user.googleId) {
       user = await prisma.user.update({ where: { id: user.id }, data: { googleId: payload.sub } });
     }
 
     const token = signSessionToken(user.id, user.email);
     setSessionCookie(res, token);
+    if (isNewUser) {
+      void sendWelcomeEmail(user.email, user.name);
+    }
     res.redirect(`${CLIENT_URL}/dashboard`);
   } catch (err) {
     console.error("[auth] google callback failed:", err);

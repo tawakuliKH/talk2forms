@@ -8,7 +8,7 @@ window.addEventListener("message", (event) => {
   }
 });
 
-const APP_URL = "http://localhost:5173";
+const API_URL = "https://api.talk2forms.site";
 let overlayEl = null;
 let fields = [];
 let queue = [];

@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:8787";
+const API_URL = "https://api.talk2forms.site";
 
 chrome.runtime.onInstalled.addListener(async () => {
   const { t2f_device_id } = await chrome.storage.local.get("t2f_device_id");
