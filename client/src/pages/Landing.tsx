@@ -17,8 +17,8 @@ export default function Landing({ session }: Props) {
           </div>
           <nav className="lp-nav">
             <a href="#how">How it works</a>
+            <a href="#accessibility">Accessibility</a>
             <a href="#features">Features</a>
-            <a href="#privacy">Your data</a>
           </nav>
           <div className="lp-header-actions">
             {loggedIn ? (
@@ -31,7 +31,7 @@ export default function Landing({ session }: Props) {
                   Sign in
                 </Link>
                 <Link to="/signup" className="lp-btn lp-btn-solid">
-                  Get started
+                  Get started free
                 </Link>
               </>
             )}
@@ -40,16 +40,17 @@ export default function Landing({ session }: Props) {
       </header>
 
       <main>
+        {/* HERO */}
         <section className="lp-hero">
           <div className="lp-hero-copy">
-            <p className="lp-eyebrow">A browser extension for job applications</p>
+            <p className="lp-eyebrow">A free browser extension</p>
             <h1 className="lp-h1">
-              Stop retyping your life story on every application.
+              Fill the forms with a click. Talk to forms and fill in a minute.
             </h1>
             <p className="lp-hero-sub">
-              Fill out your profile once. Talk2Forms reads any job application
-              form, finds what's missing, and asks you — out loud — instead of
-              making you copy-paste the same answers for the hundredth time.
+              Any form, on any site. Talk2Forms scans the page, tells you what it already
+              knows about you, and asks about the rest — out loud. You talk, it fills.
+              No more retyping your name, number, and story for the hundredth time.
             </p>
             <div className="lp-hero-actions">
               {loggedIn ? (
@@ -66,8 +67,8 @@ export default function Landing({ session }: Props) {
               </a>
             </div>
             <p className="lp-hero-trust">
-              Bring your own Gemini API key — your data and your AI usage
-              stay yours, always.
+              Built for speed, and for anyone who finds typing slow, tiring, or hard —
+              bring your own free Gemini key, your data stays yours.
             </p>
           </div>
 
@@ -77,7 +78,7 @@ export default function Landing({ session }: Props) {
                 <span className="lp-mock-dot" />
                 <span className="lp-mock-dot" />
                 <span className="lp-mock-dot" />
-                <span className="lp-mock-url">careers.acmeco.com/apply</span>
+                <span className="lp-mock-url">any-website.com/form</span>
               </div>
               <div className="lp-mock-body">
                 <div className="lp-mock-field">
@@ -86,13 +87,13 @@ export default function Landing({ session }: Props) {
                 </div>
                 <div className="lp-mock-field">
                   <label>
-                    Portfolio URL <span className="lp-tab lp-tab-yellow">missing</span>
+                    Delivery address <span className="lp-tab lp-tab-yellow">missing</span>
                   </label>
                   <div className="lp-mock-input lp-empty" />
                 </div>
                 <div className="lp-mock-field">
                   <label>
-                    Why do you want this role? <span className="lp-tab lp-tab-yellow">missing</span>
+                    Tell us more <span className="lp-tab lp-tab-yellow">missing</span>
                   </label>
                   <div className="lp-mock-input lp-empty lp-tall" />
                 </div>
@@ -100,8 +101,7 @@ export default function Landing({ session }: Props) {
               <div className="lp-mock-chat">
                 <div className="lp-mock-avatar">T2F</div>
                 <div className="lp-mock-bubble">
-                  Two fields are missing — mind telling me about your portfolio
-                  and why this role interests you?
+                  Two things are missing — just talk to me and I'll fill them in.
                   <span className="lp-caret" />
                 </div>
               </div>
@@ -109,6 +109,7 @@ export default function Landing({ session }: Props) {
           </div>
         </section>
 
+        {/* HOW IT WORKS */}
         <section className="lp-section" id="how">
           <p className="lp-eyebrow lp-eyebrow-center">How it works</p>
           <h2 className="lp-h2 lp-h2-center">Three tabs in your folder.</h2>
@@ -116,78 +117,92 @@ export default function Landing({ session }: Props) {
           <div className="lp-folder">
             <div className="lp-tab-card">
               <span className="lp-tab-label">Tab A</span>
-              <h3>Fill your profile once</h3>
+              <h3>Tell it about you, once</h3>
               <p>
-                Name, contact info, links, and your CV — paste it in, and
-                Talk2Forms quietly builds an AI-ready summary in the
-                background.
+                Fill your profile once — name, contact info, links, and a bit about you.
+                Talk2Forms remembers it for every form after that.
               </p>
             </div>
             <div className="lp-tab-card lp-tab-card-raised">
               <span className="lp-tab-label">Tab B</span>
-              <h3>Open any application form</h3>
+              <h3>Open any form and scan</h3>
               <p>
-                Click "Scan page." Talk2Forms reads every field and label,
-                then checks it against what it knows about you — silently,
-                nothing gets filled yet.
+                One click reads every field on the page and checks it against what it
+                knows about you — nothing gets touched yet, you see it first.
               </p>
             </div>
             <div className="lp-tab-card">
               <span className="lp-tab-label">Tab C</span>
               <h3>Just talk</h3>
               <p>
-                Start the AI interview. Say what's missing out loud, in your
-                own words — Talk2Forms writes the answers into the right
-                fields for you.
+                Press record, say your answer in your own words, and Talk2Forms writes it
+                into the right field — clean, correct, and editable before it's final.
               </p>
             </div>
           </div>
         </section>
 
+        {/* ACCESSIBILITY */}
+        <section className="lp-section" id="accessibility">
+          <div className="lp-access-card">
+            <p className="lp-eyebrow">Built to include everyone</p>
+            <h2 className="lp-h2">Not everyone can type through a long form. Now they don't have to.</h2>
+            <p className="lp-access-body">
+              Talk2Forms was built so that anyone who finds typing slow, tiring, or
+              impossible — including people with limited vision or limited use of their
+              hands — can fill out a form entirely by voice: scan, listen, talk, confirm.
+              Every field stays editable, every answer is read back before it's used, and
+              nothing is filled without a clear, spoken confirmation first.
+            </p>
+          </div>
+        </section>
+
+        {/* FEATURES */}
         <section className="lp-section" id="features">
-          <p className="lp-eyebrow lp-eyebrow-center">Built for the job hunt</p>
+          <p className="lp-eyebrow lp-eyebrow-center">Works everywhere</p>
           <h2 className="lp-h2 lp-h2-center">
-            Less form-filling. More applying.
+            Job applications, signups, surveys, checkout — any form.
           </h2>
 
           <div className="lp-grid">
             <div className="lp-feature">
               <span className="lp-feature-mark" />
-              <h3>Scan &amp; highlight</h3>
+              <h3>Scan &amp; understand</h3>
               <p>
-                See exactly which fields on a page are missing information
-                before you commit to filling anything in.
+                Reads every field type — text, dropdowns, checkboxes, dates, file uploads —
+                and figures out what each one is actually asking.
               </p>
             </div>
             <div className="lp-feature">
               <span className="lp-feature-mark" />
-              <h3>Voice-first interview</h3>
+              <h3>Voice-first, hands optional</h3>
               <p>
-                Talk2Forms explains the form, asks about gaps, and writes
-                your spoken answers straight into the right fields.
+                Record, review, and re-record your answer as many times as you like before
+                anything is written into the page.
               </p>
             </div>
             <div className="lp-feature">
               <span className="lp-feature-mark" />
-              <h3>Works without an account</h3>
+              <h3>Learns as you go</h3>
               <p>
-                No profile yet? Talk2Forms still helps with a lighter, one-time
-                pass — then invites you to save your info for next time.
+                Answers you confirm are saved back to your profile, so the next form
+                you fill needs even less from you.
               </p>
             </div>
             <div className="lp-feature">
               <span className="lp-feature-mark" />
-              <h3 id="privacy">Your key, your data</h3>
+              <h3>Your key, your data</h3>
               <p>
-                Every user connects their own free Gemini API key. Your
-                information is never run through a shared account.
+                Connect your own free Gemini API key. Your information is never run
+                through a shared account.
               </p>
             </div>
           </div>
         </section>
 
+        {/* FINAL CTA */}
         <section className="lp-cta">
-          <h2 className="lp-h2">Your next application shouldn't take an hour.</h2>
+          <h2 className="lp-h2">Stop typing the same thing twice.</h2>
           {loggedIn ? (
             <Link to="/dashboard" className="lp-btn lp-btn-solid lp-btn-lg">
               Go to your dashboard
@@ -204,7 +219,7 @@ export default function Landing({ session }: Props) {
         <div className="lp-logo">
           Talk2Forms<span className="lp-logo-dot">.</span>
         </div>
-        <p>Built for job seekers who'd rather talk than type.</p>
+        <p>Fill the forms with a click. Talk to forms and fill in a minute.</p>
       </footer>
     </div>
   );

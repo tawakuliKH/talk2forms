@@ -367,3 +367,25 @@ textarea { min-height: 140px; resize: vertical; font-family: inherit; }
   right: 0;
   width: 190px;
 }
+.lp-access-card {
+  background: var(--paper-card, #f7f8f4);
+  border: 1px solid var(--line, #d6dad1);
+  border-radius: 20px;
+  padding: 40px;
+  max-width: 780px;
+  margin: 0 auto;
+}
+
+.lp-access-body {
+  color: var(--muted, #6b7a70);
+  font-size: 1.02rem;
+  line-height: 1.7;
+  max-width: 62ch;
+  margin-top: 16px;
+}
+
+@media (max-width: 560px) {
+  .lp-access-card {
+    padding: 24px;
+  }
+}
