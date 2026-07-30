@@ -9,6 +9,7 @@ import DashboardLayout from "./pages/DashboardLayout";
 import Overview from "./pages/Overview";
 import Profile from "./pages/Profile";
 import GeminiKeyGuide from "./pages/GeminiKeyGuide";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -34,6 +35,7 @@ export default function App() {
       <Route path="/login" element={session ? <Navigate to="/dashboard" /> : <Login />} />
       <Route path="/signup" element={session ? <Navigate to="/dashboard" /> : <Signup />} />
       <Route path="/gemini-key-guide" element={<GeminiKeyGuide />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route
         path="/dashboard"
         element={session ? <DashboardLayout session={session} /> : <Navigate to="/login" />}

@@ -220,7 +220,11 @@ export default function Landing({ session }: Props) {
           Talk2Forms<span className="lp-logo-dot">.</span>
         </div>
         <p>Fill the forms with a click. Talk to forms and fill in a minute.</p>
+        <p style={{ marginTop: 8 }}>
+          <Link to="/privacy" style={{ color: "inherit" }}>Privacy Policy</Link>
+        </p>
       </footer>
     </div>
   );
 }
+
