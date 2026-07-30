@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import type { Session } from "@supabase/supabase-js";
+import type { Session } from "../lib/supabaseClient";
 
 interface Props {
   session: Session;

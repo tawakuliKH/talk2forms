@@ -1,31 +1,47 @@
-import { createClient } from "@supabase/supabase-js";
+const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8787";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn(
-    "Missing VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY — copy client/.env.example to client/.env and fill them in."
-  );
+export interface Session {
+  user: { id: string; email: string };
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export async function getSession(): Promise<Session | null> {
+  const res = await fetch(`${API_URL}/api/auth/me`, { credentials: "include" });
+  if (!res.ok) return null;
+  const body = await res.json();
+  return body.user ? { user: body.user } : null;
+}
 
-export async function signInWithGoogle() {
-  return supabase.auth.signInWithOAuth({
-    provider: "google",
-    options: { redirectTo: window.location.origin },
-  });
+export function signInWithGoogle() {
+  window.location.href = `${API_URL}/api/auth/google`;
 }
 
 export async function signInWithEmail(email: string, password: string) {
-  return supabase.auth.signInWithPassword({ email, password });
+  const res = await fetch(`${API_URL}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ email, password }),
+  });
+  const body = await res.json();
+  if (!res.ok) return { error: { message: body.error || "Could not sign in." } };
+  window.dispatchEvent(new CustomEvent("t2f-auth-changed"));
+  return { error: null, data: { session: { user: body.user } } };
 }
 
 export async function signUpWithEmail(email: string, password: string) {
-  return supabase.auth.signUp({ email, password });
+  const res = await fetch(`${API_URL}/api/auth/signup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ email, password }),
+  });
+  const body = await res.json();
+  if (!res.ok) return { error: { message: body.error || "Could not create account." } };
+  window.dispatchEvent(new CustomEvent("t2f-auth-changed"));
+  return { error: null, data: { session: { user: body.user } } };
 }
 
 export async function signOut() {
-  return supabase.auth.signOut();
+  await fetch(`${API_URL}/api/auth/logout`, { method: "POST", credentials: "include" });
+  window.dispatchEvent(new CustomEvent("t2f-auth-changed"));
 }

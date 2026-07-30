@@ -15,8 +15,10 @@ datasource db {
 model User {
   id              String   @id @default(uuid())
   email           String   @unique
-  name            String
-  lastname        String
+  passwordHash    String?
+  googleId        String?  @unique
+  name            String   @default("")
+  lastname        String   @default("")
   whatsapp        String?
   linkedin        String?
   portfolio       String?

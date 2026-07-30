@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import type { Session } from "@supabase/supabase-js";
-import { supabase } from "./lib/supabaseClient";
+import { getSession, type Session } from "./lib/supabaseClient";
+import { broadcastSessionToExtension } from "./lib/extensionBridge";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -9,23 +9,21 @@ import DashboardLayout from "./pages/DashboardLayout";
 import Overview from "./pages/Overview";
 import Profile from "./pages/Profile";
 import GeminiKeyGuide from "./pages/GeminiKeyGuide";
-import { broadcastSessionToExtension } from "./lib/extensionBridge";
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  async function refreshSession() {
+    const s = await getSession();
+    setSession(s);
+    broadcastSessionToExtension(s as any);
+  }
+
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session);
-      broadcastSessionToExtension(data.session);
-      setLoading(false);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => {
-      setSession(s);
-      broadcastSessionToExtension(s);
-    });
-    return () => listener.subscription.unsubscribe();
+    refreshSession().finally(() => setLoading(false));
+    window.addEventListener("t2f-auth-changed", refreshSession);
+    return () => window.removeEventListener("t2f-auth-changed", refreshSession);
   }, []);
 
   if (loading) return null;
