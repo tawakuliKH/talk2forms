@@ -38,6 +38,11 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     proxyFetch("/api/forms/interview-answer", message.payload).then(sendResponse);
     return true;
   }
+
+  if (message.type === "T2F_TRANSCRIBE") {
+    proxyFetch("/api/speech/transcribe", message.payload).then(sendResponse);
+    return true;
+  }
   if (message.type === "T2F_LEARN") {
     proxyFetch("/api/forms/learn", message.payload).then(sendResponse);
     return true;

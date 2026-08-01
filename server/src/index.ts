@@ -6,6 +6,7 @@ import { usersRouter } from "./routes/users.js";
 import { trialRouter } from "./routes/trial";
 import { formsRouter } from "./routes/forms";
 import { authRouter } from "./routes/auth";
+import { speechRouter } from "./routes/speech.js";
 
 
 const app = express();
@@ -28,6 +29,7 @@ app.use("/api/trial", trialRouter);
 // ...
 app.use("/api/forms", formsRouter);
 app.use("/api/auth", authRouter);
+app.use("/api/speech", speechRouter);
 const port = Number(process.env.PORT) || 8787;
 app.listen(port, () => {
   console.log(`Server listening on http://localhost:${port}`);

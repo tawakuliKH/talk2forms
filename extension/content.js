@@ -13,14 +13,11 @@ let overlayEl = null;
 let fields = [];
 let queue = [];
 let qi = 0;
-let recognition = null;
-let recognizing = false;
-let transcriptBuffer = "";
-let interimBuffer = "";
+let mediaRecorder = null;
+let audioChunks = [];
+let recording = false;
 let pageTextCache = "";
 let learnedUpdates = {};
-
-const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 // Non-blocking on purpose: callers never await this, so the UI (buttons)
 // stays fully interactive while speech plays in the background.
@@ -224,8 +221,8 @@ async function toggleOverlay() {
     overlayEl.remove();
     overlayEl = null;
     speechSynthesis.cancel();
-    if (recognition && recognizing) {
-      try { recognition.stop(); } catch (e) { }
+    if (mediaRecorder && recording) {
+      try { mediaRecorder.stop(); mediaRecorder.stream.getTracks().forEach((t) => t.stop()); } catch (e) { }
     }
     return;
   }
@@ -489,67 +486,81 @@ function renderTextareaCapture(field, draft) {
   wireRecordButtons(field, (raw) => processTextareaAnswer(field, raw, currentDraft()));
 }
 
-// Shared speech capture. Interim (non-final) results are kept as a live
-// fallback, so a short utterance (e.g. a phone number) that the browser
-// ends before ever producing a "final" result is still used instead of lost.
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result.split(",")[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 function wireRecordButtons(field, onDone) {
   const recBtn = document.getElementById("recBtn");
   const stopBtn = document.getElementById("stopRecBtn");
   const transcriptEl = document.getElementById("transcript");
 
-  if (!SpeechRecognitionAPI) {
-    transcriptEl.textContent = "Voice isn't supported in this browser.";
-    recBtn.disabled = true;
-    return;
-  }
+  recBtn.onclick = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioChunks = [];
+      mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
 
-  recBtn.onclick = () => {
-    transcriptBuffer = "";
-    interimBuffer = "";
-    recognition = new SpeechRecognitionAPI();
-    recognition.lang = "en-US";
-    recognition.continuous = true;
-    recognition.interimResults = true;
+      mediaRecorder.ondataavailable = (e) => {
+        if (e.data.size > 0) audioChunks.push(e.data);
+      };
 
-    recognition.onresult = (e) => {
-      let finalChunk = "";
-      let interimChunk = "";
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) finalChunk += e.results[i][0].transcript + " ";
-        else interimChunk += e.results[i][0].transcript;
-      }
-      if (finalChunk) transcriptBuffer += finalChunk;
-      interimBuffer = interimChunk;
-      // Don't show the raw transcript — speech recognition can mishear things,
-      // and displaying it as-if-correct could be misleading before the AI
-      // has had a chance to clean it up.
+      mediaRecorder.start();
+      recording = true;
+      recBtn.disabled = true;
+      stopBtn.disabled = false;
+      recBtn.textContent = "🔴 Recording…";
       transcriptEl.textContent = "🎙️ Listening…";
-    };
-
-    recognition.onerror = () => { };
-    recognition.onend = () => { recognizing = false; };
-    recognition.start();
-    recognizing = true;
-    recBtn.disabled = true;
-    stopBtn.disabled = false;
-    recBtn.textContent = "🔴 Recording…";
+    } catch (err) {
+      transcriptEl.textContent = "Microphone access was denied or unavailable.";
+    }
   };
 
   stopBtn.onclick = async () => {
-    try {
-      if (recognition && recognizing) recognition.stop();
-    } catch (e) { }
-    recognizing = false;
+    if (!mediaRecorder || !recording) return;
+
+    const stopped = new Promise((resolve) => {
+      mediaRecorder.onstop = resolve;
+    });
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach((t) => t.stop());
+    await stopped;
+    recording = false;
+
     recBtn.disabled = false;
     stopBtn.disabled = true;
-    recBtn.textContent = "🎙️ Start recording";
+    recBtn.textContent = recBtn.textContent.includes("Add") ? "🎙️ Add / change" : "🎙️ Start recording";
+    transcriptEl.textContent = "🤖 Transcribing…";
 
-    const finalText = (transcriptBuffer || interimBuffer).trim();
-    if (!finalText) {
+    if (audioChunks.length === 0) {
       transcriptEl.textContent = "Didn't catch anything — try again.";
       return;
     }
-    await onDone(finalText);
+
+    try {
+      const blob = new Blob(audioChunks, { type: "audio/webm" });
+      const audioBase64 = await blobToBase64(blob);
+
+      const { ok, body } = await chrome.runtime.sendMessage({
+        type: "T2F_TRANSCRIBE",
+        payload: { audioBase64, mimeType: "audio/webm" },
+      });
+
+      if (!ok || !body?.text) {
+        transcriptEl.textContent = "Couldn't transcribe that — try again.";
+        return;
+      }
+
+      transcriptEl.textContent = "";
+      await onDone(body.text);
+    } catch (err) {
+      transcriptEl.textContent = "Something went wrong — try again.";
+    }
   };
 }
 
