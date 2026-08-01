@@ -178,6 +178,7 @@ const OVERLAY_CSS = `
 .t2f-logo span { background:#cfff57; border-radius:3px; padding:0 4px; }
 .t2f-close-btn { width:26px;height:26px;border-radius:50%;border:none;background:#f3f5f0;color:#16201c;font-size:0.95rem;cursor:pointer; }
 .t2f-status { font-size:0.82rem; color:#6b7a70; margin:0 0 12px; text-align:center; }
+.t2f-status-thinking { font-size:0.9rem; color:#16201c; font-weight:700; margin:8px 0 0; text-align:center; }
 .t2f-status-error { color:#b32d2d; } .t2f-status-done { color:#2c7a34; font-weight:700; }
 .t2f-email { font-weight:700; color:#16201c; }
 .t2f-btn { display:block; width:100%; text-align:center; padding:12px; border-radius:12px; border:none; background:#16201c; color:#f7f8f4;
@@ -224,7 +225,7 @@ async function toggleOverlay() {
     overlayEl = null;
     speechSynthesis.cancel();
     if (recognition && recognizing) {
-      try { recognition.stop(); } catch (e) {}
+      try { recognition.stop(); } catch (e) { }
     }
     return;
   }
@@ -458,10 +459,9 @@ function renderTextareaCapture(field, draft) {
 
   stepEl.innerHTML = `
     <p class="t2f-iv-label">${escapeHtml(field.label)}</p>
-    ${
-      hasDraft
-        ? `<textarea class="t2f-iv-editable" id="editableAnswer">${escapeHtml(draft)}</textarea>`
-        : `<p class="t2f-iv-hint">This one's missing — tell me about it in your own words.</p>`
+    ${hasDraft
+      ? `<textarea class="t2f-iv-editable" id="editableAnswer">${escapeHtml(draft)}</textarea>`
+      : `<p class="t2f-iv-hint">This one's missing — tell me about it in your own words.</p>`
     }
     <div class="t2f-iv-actions">
       <button class="t2f-btn" id="useThisBtn" ${hasDraft ? "" : "disabled"}>Use this ✓</button>
@@ -520,9 +520,13 @@ function wireRecordButtons(field, onDone) {
       }
       if (finalChunk) transcriptBuffer += finalChunk;
       interimBuffer = interimChunk;
-      transcriptEl.textContent = `"${(transcriptBuffer + interimBuffer).trim()}"`;
+      // Don't show the raw transcript — speech recognition can mishear things,
+      // and displaying it as-if-correct could be misleading before the AI
+      // has had a chance to clean it up.
+      transcriptEl.textContent = "🎙️ Listening…";
     };
-    recognition.onerror = () => {};
+
+    recognition.onerror = () => { };
     recognition.onend = () => { recognizing = false; };
     recognition.start();
     recognizing = true;
@@ -534,7 +538,7 @@ function wireRecordButtons(field, onDone) {
   stopBtn.onclick = async () => {
     try {
       if (recognition && recognizing) recognition.stop();
-    } catch (e) {}
+    } catch (e) { }
     recognizing = false;
     recBtn.disabled = false;
     stopBtn.disabled = true;
@@ -551,7 +555,7 @@ function wireRecordButtons(field, onDone) {
 
 async function processSimpleAnswer(field, rawAnswer) {
   const stepEl = document.getElementById("interviewStep");
-  stepEl.insertAdjacentHTML("beforeend", `<p class="t2f-status" id="thinking">Thinking…</p>`);
+  stepEl.insertAdjacentHTML("beforeend", `<p class="t2f-status-thinking" id="thinking">🤖 Thinking…</p>`);
 
   try {
     const { t2f_session } = await chrome.storage.local.get("t2f_session");
@@ -576,7 +580,7 @@ async function processSimpleAnswer(field, rawAnswer) {
 
 async function processTextareaAnswer(field, rawAnswer, previousDraft) {
   const stepEl = document.getElementById("interviewStep");
-  stepEl.insertAdjacentHTML("beforeend", `<p class="t2f-status" id="thinking">Thinking…</p>`);
+  stepEl.insertAdjacentHTML("beforeend", `<p class="t2f-status-thinking" id="thinking">🤖 Thinking…</p>`);
 
   try {
     const { t2f_session } = await chrome.storage.local.get("t2f_session");
