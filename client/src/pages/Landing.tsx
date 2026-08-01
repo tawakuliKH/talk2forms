@@ -67,8 +67,9 @@ export default function Landing({ session }: Props) {
               </a>
             </div>
             <p className="lp-hero-trust">
-              Built for speed, and for anyone who finds typing slow, tiring, or hard —
-              bring your own free Gemini key, your data stays yours.
+              <strong>Speak in any language — Talk2Forms detects it automatically.</strong> Built
+              for speed, and for anyone who finds typing slow, tiring, or hard — bring your own
+              free Gemini key, your data stays yours.
             </p>
           </div>
 
@@ -187,6 +188,14 @@ export default function Landing({ session }: Props) {
               <p>
                 Answers you confirm are saved back to your profile, so the next form
                 you fill needs even less from you.
+              </p>
+            </div>
+            <div className="lp-feature">
+              <span className="lp-feature-mark" />
+              <h3>Any language, auto-detected</h3>
+              <p>
+                Speak in English, Spanish, Persian, Pashto, or any of 99+ languages —
+                Talk2Forms automatically detects what you're speaking, no settings to change.
               </p>
             </div>
             <div className="lp-feature">

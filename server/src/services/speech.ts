@@ -8,8 +8,9 @@ export async function transcribeAudio(audioBuffer: Buffer, mimeType: string): Pr
   const ext = mimeType.includes("webm") ? "webm" : mimeType.includes("mp4") ? "m4a" : "wav";
   form.append("file", new Blob([audioBuffer], { type: mimeType }), `audio.${ext}`);
   form.append("model", "whisper-large-v3-turbo");
-  form.append("language", "en");
   form.append("response_format", "text");
+  // No "language" param — Whisper auto-detects the spoken language from
+  // the audio itself, supporting 99+ languages.
 
   const res = await fetch(GROQ_URL, {
     method: "POST",

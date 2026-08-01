@@ -176,6 +176,7 @@ const OVERLAY_CSS = `
 .t2f-close-btn { width:26px;height:26px;border-radius:50%;border:none;background:#f3f5f0;color:#16201c;font-size:0.95rem;cursor:pointer; }
 .t2f-status { font-size:0.82rem; color:#6b7a70; margin:0 0 12px; text-align:center; }
 .t2f-status-thinking { font-size:0.9rem; color:#16201c; font-weight:700; margin:8px 0 0; text-align:center; }
+.t2f-transcript { text-align: center; }
 .t2f-status-error { color:#b32d2d; } .t2f-status-done { color:#2c7a34; font-weight:700; }
 .t2f-email { font-weight:700; color:#16201c; }
 .t2f-btn { display:block; width:100%; text-align:center; padding:12px; border-radius:12px; border:none; background:#16201c; color:#f7f8f4;
@@ -515,7 +516,7 @@ function wireRecordButtons(field, onDone) {
       recBtn.disabled = true;
       stopBtn.disabled = false;
       recBtn.textContent = "🔴 Recording…";
-      transcriptEl.textContent = "🎙️ Listening…";
+      transcriptEl.innerHTML = `<span class="t2f-status-thinking">🎙️ Listening…</span>`;
     } catch (err) {
       transcriptEl.textContent = "Microphone access was denied or unavailable.";
     }
@@ -535,7 +536,7 @@ function wireRecordButtons(field, onDone) {
     recBtn.disabled = false;
     stopBtn.disabled = true;
     recBtn.textContent = recBtn.textContent.includes("Add") ? "🎙️ Add / change" : "🎙️ Start recording";
-    transcriptEl.textContent = "🤖 Transcribing…";
+    transcriptEl.innerHTML = `<span class="t2f-status-thinking">🤖 Transcribing…</span>`;
 
     if (audioChunks.length === 0) {
       transcriptEl.textContent = "Didn't catch anything — try again.";
