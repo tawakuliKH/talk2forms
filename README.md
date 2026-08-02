@@ -12,13 +12,12 @@ limited use of their hands.
 🔗 **Repository:** [github.com/tawakuliKH/talk2forms](https://github.com/tawakuliKH/talk2forms)
 🎥 **Demo video:** [Watch on YouTube](https://www.youtube.com/watch?v=rovSMHPDDOI)
 
-
 ## Demo
 
 [![Talk2Forms demo](https://img.youtube.com/vi/rovSMHPDDOI/maxresdefault.jpg)](https://www.youtube.com/watch?v=rovSMHPDDOI)
 
-*Click to watch: scanning a real form, an AI-driven voice interview, and answers being written directly into the page.*
-
+*Click to watch: scanning a real form, an AI-driven voice interview, and answers being
+written directly into the page.*
 
 ---
 
@@ -37,18 +36,19 @@ sign-in.
 
 ### 2. Build your profile, once
 Fill in your name, contact details, LinkedIn/portfolio/GitHub links, and a pasted
-CV or background. Talk2Forms generates an AI-written summary of your background in
-the background, ready for any form.
+CV or background (plain text — no formatting needed). Talk2Forms generates an
+AI-written summary of your background in the background, ready for any form.
 
 ### 3. Connect your free AI key
 Connect your own free Google Gemini API key from the dashboard (a step-by-step guide
 is built in). Your key and your data are never shared with other users.
 
 ### 4. Install the extension and scan any form
-Open any page with a form and click the Talk2Forms icon. An overlay panel opens right
-on the page — no popup that disappears the moment you click elsewhere. Click
-**Scan this page**, and Talk2Forms reads every field, compares it to your profile using
-AI, and shows you exactly what it already knows and what's missing.
+Install Talk2Forms from the Chrome Web Store. Open any page with a form and click the
+Talk2Forms icon. An overlay panel opens right on the page — no popup that disappears
+the moment you click elsewhere. Click **Scan this page**, and Talk2Forms reads every
+field, compares it to your profile using AI, and shows you exactly what it already
+knows and what's missing.
 
 ### 5. Talk, and it fills the form for you
 Click **Start interview**. For fields it already has an answer for, it reads the value
@@ -94,9 +94,12 @@ Talk2Forms is a three-part system:
 ```
 talk2forms/
 ├── client/      Website — landing page, auth, dashboard, profile management
-├── server/      API — auth, AI orchestration, database access
-└── extension/   Chrome extension — the injected overlay panel that scans and fills forms
+└── server/      API — auth, AI orchestration, database access
 ```
+
+The browser extension (the injected overlay panel that scans and fills forms) is
+developed as part of this project but its source is kept private — install it from
+the [Chrome Web Store](#) once it's live, rather than from this repository.
 
 ### Technology stack
 
@@ -110,7 +113,7 @@ talk2forms/
 | Speech-to-text | Groq-hosted Whisper (`whisper-large-v3-turbo`) — fast, accurate, multilingual transcription |
 | Text-to-speech | Web Speech API (`speechSynthesis`) |
 | Email | Resend — welcome and profile-update transactional emails |
-| Extension | Chrome Manifest V3, vanilla JavaScript, injected DOM overlay (not a popup) |
+| Extension | Chrome Manifest V3, injected DOM overlay (not a popup) — source kept private |
 | Deployment | Self-hosted VPS, Docker, Apache reverse proxy, Let's Encrypt via AutoSSL |
 
 ### Why an injected overlay instead of a browser popup?
@@ -143,7 +146,8 @@ beyond a couple of clicks, and no language barrier.
 ## Project status
 
 Actively developed. Core flow (account → profile → scan → voice interview → fill) is
-live in production. See open items and roadmap in project discussions.
+live in production. The browser extension is submitted to the Chrome Web Store and
+pending review.
 
 ## License
 
