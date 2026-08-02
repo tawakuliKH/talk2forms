@@ -166,6 +166,10 @@ export default function Profile({ session }: Props) {
           </div>
 
           <p className="dash-section-label">AI settings</p>
+          <p className="auth-field-error" style={{ color: "#6b7a70", marginTop: 0, marginBottom: 12 }}>
+            This key powers Talk2Forms' AI — it reads forms, understands any language you
+            speak, and writes clean answers into the right fields.
+          </p>
           <div className="auth-field">
             <label className="auth-label" htmlFor="geminiApiKey">
               Gemini API key <span className="auth-required-star">*</span>

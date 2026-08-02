@@ -33,7 +33,10 @@ export default function Login() {
           Talk2Forms<span>.</span>
         </div>
         <h1>Welcome back</h1>
-        <p className="auth-subtitle">Sign in to continue to your profile.</p>
+        <p className="auth-subtitle">
+          Sign in to continue. Your AI form-filling assistant — fills any form from your
+          voice, in any language.
+        </p>
 
         <button type="button" className="auth-google" onClick={() => signInWithGoogle()}>
           <svg width="18" height="18" viewBox="0 0 24 24" className="auth-google-icon">

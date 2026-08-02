@@ -37,7 +37,10 @@ export default function Overview({ session }: Props) {
       <h1 className="ov-title">
         {loading ? "Welcome" : user ? `Welcome back, ${user.name}` : "Welcome"}
       </h1>
-      <p className="ov-subtitle">Here's a quick look at your Talk2Forms account.</p>
+      <p className="ov-subtitle">
+        Here's a quick look at your Talk2Forms account — your AI form-filling assistant,
+        ready in any language.
+      </p>
 
       <div className="ov-grid">
         <Link to="/dashboard/profile" className="ov-card ov-card-clickable">

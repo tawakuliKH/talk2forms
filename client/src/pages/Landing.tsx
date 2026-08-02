@@ -134,10 +134,11 @@ export default function Landing({ session }: Props) {
             </div>
             <div className="lp-tab-card">
               <span className="lp-tab-label">Tab C</span>
-              <h3>Just talk</h3>
+              <h3>Just talk — in any language</h3>
               <p>
-                Press record, say your answer in your own words, and Talk2Forms writes it
-                into the right field — clean, correct, and editable before it's final.
+                Press record and speak in your own words, any language you like. AI turns
+                what you said into a clean, correct answer for the field — editable before
+                it's final.
               </p>
             </div>
           </div>

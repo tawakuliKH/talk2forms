@@ -7,8 +7,9 @@ export default function GeminiKeyGuide() {
         </div>
         <h1 className="gg-title">How to get your free Gemini API key</h1>
         <p className="gg-subtitle">
-          Takes about a minute. Your key is free, tied to your own Google account, and stays
-          private to you — Talk2Forms never shares it.
+          Takes about a minute. This key powers Talk2Forms' AI — the part that reads any
+          form, understands any language you speak, and writes the right answer into every
+          field. It's free, tied to your own Google account, and stays private to you.
         </p>
 
         <div className="gg-step">

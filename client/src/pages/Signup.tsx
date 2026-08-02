@@ -46,7 +46,10 @@ export default function Signup() {
           Talk2Forms<span>.</span>
         </div>
         <h1>Create your account</h1>
-        <p className="auth-subtitle">Set up your profile once, apply everywhere.</p>
+        <p className="auth-subtitle">
+          Your AI form-filling assistant. Set up your profile once, then fill any form by
+          voice — in any language.
+        </p>
 
         <button type="button" className="auth-google" onClick={() => signInWithGoogle()}>
           <svg width="18" height="18" viewBox="0 0 24 24" className="auth-google-icon">
