@@ -43,13 +43,13 @@ export default function Landing({ session }: Props) {
         {/* HERO */}
         <section className="lp-hero">
           <div className="lp-hero-copy">
-            <p className="lp-eyebrow">A free browser extension</p>
+            <p className="lp-eyebrow">A free, AI-powered browser extension</p>
             <h1 className="lp-h1">
               Fill the forms with a click. Talk to forms and fill in a minute.
             </h1>
             <p className="lp-hero-sub">
-              Any form, on any site. Talk2Forms scans the page, tells you what it already
-              knows about you, and asks about the rest — out loud. You talk, it fills.
+              Any form, on any site. AI scans the page, tells you what it already knows about
+              you, and asks about the rest — out loud, in any language. You talk, it fills.
               No more retyping your name, number, and story for the hundredth time.
             </p>
             <div className="lp-hero-actions">
@@ -229,7 +229,7 @@ export default function Landing({ session }: Props) {
         <div className="lp-logo">
           Talk2Forms<span className="lp-logo-dot">.</span>
         </div>
-        <p>Fill the forms with a click. Talk to forms and fill in a minute.</p>
+        <p>Your AI form-filling assistant. Fill the forms with a click, talk to forms and fill in a minute.</p>
         <p style={{ marginTop: 8 }}>
           <Link to="/privacy" style={{ color: "inherit" }}>Privacy Policy</Link>
         </p>
