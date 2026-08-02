@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Talk2Forms",
   "version": "0.1.0",
-  "description": "Your AI form-filling assistant. Talk2Forms reads any form, understands what it's asking, and fills it in from your voice and profile. Free, fast, accessible.",
+  "description": "AI-powered voice form filler. Talk2Forms scans any form, matches your profile, and fills it in as you talk. Free & accessible.",
   "action": {
     "default_icon": {
       "16": "icons/icon16.png",
