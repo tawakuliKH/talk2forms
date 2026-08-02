@@ -1,0 +1,21 @@
+# Talk2Forms
+
+> Talk2Forms is a free, AI-powered browser extension and website that fills out
+> any online form by voice, in any language. Users create a profile once, then
+> use the Chrome extension to scan any form on any website — the AI reads the
+> form, matches it against the user's saved profile, and asks about anything
+> missing through a spoken voice interview. Built for speed and accessibility,
+> for anyone who finds typing slow, tiring, or difficult.
+
+## Key facts
+- Free to use. Users bring their own free Google Gemini API key.
+- Works on any form: job applications, signups, surveys, checkout forms.
+- Supports 99+ languages, auto-detected from speech.
+- Available as a Chrome browser extension.
+- Built with privacy in mind: never fills fields belonging to someone else
+  (e.g. "recipient" or "emergency contact" fields), never touches password fields.
+
+## Pages
+- Homepage: https://talk2forms.site/
+- Privacy policy: https://talk2forms.site/privacy
+- How to get a free Gemini API key: https://talk2forms.site/gemini-key-guide
