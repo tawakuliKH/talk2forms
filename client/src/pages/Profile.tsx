@@ -162,6 +162,10 @@ export default function Profile({ session }: Props) {
 
           <p className="dash-section-label">CV</p>
           <div className="auth-field">
+            <p className="auth-field-error" style={{ color: "#6b7a70", marginTop: 0, marginBottom: 8 }}>
+              Paste the plain text of your CV — no formatting needed. Copy straight from your resume
+              document; bullet points, headers, and styling will be ignored, only the words matter.
+            </p>
             <textarea className="dash-textarea" placeholder="Paste the full text of your CV here…" value={form.cvText} onChange={(e) => update("cvText", e.target.value)} />
           </div>
 
